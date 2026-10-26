@@ -1,5 +1,5 @@
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { jwtVerify } from "jose";
 import pool from "@/lib/db";
 
@@ -12,9 +12,7 @@ export async function getCurrentUser() {
   }
 
   try {
-    const secret = new TextEncoder().encode(
-      process.env.AUTH_SECRET
-    );
+    const secret = new TextEncoder().encode(process.env.AUTH_SECRET);
 
     const { payload } = await jwtVerify(token, secret, {
       algorithms: ["HS256"],
@@ -24,6 +22,14 @@ export async function getCurrentUser() {
       typeof payload.userId !== "number" &&
       typeof payload.userId !== "string"
     ) {
+      return null;
+    }
+
+    // Check which website hostname received the request
+    const headerStore = await headers();
+    const currentHost = headerStore.get("host")?.toLowerCase();
+
+    if (!currentHost || payload.host !== currentHost) {
       return null;
     }
 
