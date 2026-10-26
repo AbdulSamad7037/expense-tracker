@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import {
   BarChart,
@@ -28,16 +29,31 @@ type DashboardData = {
 };
 
 export default function Home() {
+  const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [budget, setBudget] = useState<number>(0);
   const [budgetInput, setBudgetInput] = useState("");
   const [savingBudget, setSavingBudget] = useState(false);
   const [budgetMessage, setBudgetMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [authChecking, setAuthChecking] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
       try {
+        // Step 1: Check whether the user is logged in
+        const authResponse = await fetch("/api/me");
+
+        if (!authResponse.ok) {
+          router.replace("/login");
+          return;
+        }
+
+        // The user is logged in
+        setIsAuthenticated(true);
+
+        // Step 2: Fetch dashboard data
         const response = await fetch("/api/dashboard");
 
         if (!response.ok) {
@@ -47,6 +63,7 @@ export default function Home() {
         const result = await response.json();
         setData(result);
 
+        // Step 3: Fetch monthly budget
         const budgetResponse = await fetch("/api/monthly-budget");
 
         if (!budgetResponse.ok) {
@@ -60,13 +77,15 @@ export default function Home() {
         setBudgetInput(savedBudget > 0 ? String(savedBudget) : "");
       } catch (error) {
         console.error("Home page error:", error);
+        router.replace("/login");
       } finally {
         setLoading(false);
+        setAuthChecking(false);
       }
     }
 
     fetchData();
-  }, []);
+  }, [router]);
 
   async function saveBudget() {
     const amount = Number(budgetInput);
@@ -133,6 +152,10 @@ export default function Home() {
   });
 
   const year = now.getFullYear();
+
+  if (authChecking || !isAuthenticated) {
+    return <p className="p-6 text-center">Checking login...</p>;
+  }
 
   return (
     <main className="w-full min-w-0 overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8">
