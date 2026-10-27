@@ -154,7 +154,7 @@ export default function Home() {
   const year = now.getFullYear();
 
   if (authChecking || !isAuthenticated) {
-    return <p className="p-6 text-center">Checking login...</p>;
+    return null;
   }
 
   return (
