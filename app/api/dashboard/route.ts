@@ -56,15 +56,17 @@ export async function GET() {
       [user.id]
     );
 
-    // CHANGED: Category totals for this user only
-    const [categoryResult] = await db.query(
-      `SELECT category, SUM(amount) AS total
-       FROM expenses
-       WHERE user_id = ?
-       GROUP BY category
-       ORDER BY total DESC`,
-      [user.id]
-    );
+   // Category totals for this user's current month
+const [categoryResult] = await db.query(
+  `SELECT category, COALESCE(SUM(amount), 0) AS total
+   FROM expenses
+   WHERE user_id = ?
+   AND YEAR(expense_date) = YEAR(CURDATE())
+   AND MONTH(expense_date) = MONTH(CURDATE())
+   GROUP BY category
+   ORDER BY total DESC`,
+  [user.id]
+);
 
     return NextResponse.json({
       total: (totalResult as any)[0].total,
